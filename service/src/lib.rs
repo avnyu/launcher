@@ -35,7 +35,7 @@ use std::{
 pub type PluginKey = usize;
 
 /// Bounds for the number of service responses.
-#[derive(Parser, Debug, Clone, Copy)]
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Max number of files in a response.
@@ -49,6 +49,10 @@ pub struct Args {
     /// Max number of generic items in a response.
     #[arg(short, long, default_value_t = 8)]
     pub max_search: usize,
+
+    /// Plugin names to disable, repeatable.
+    #[arg(short, long)]
+    pub disable: Vec<String>,
 }
 
 impl Default for Args {
@@ -57,6 +61,7 @@ impl Default for Args {
             max_files: 100,
             max_open: 8,
             max_search: 8,
+            disable: Vec::new(),
         }
     }
 }
@@ -318,6 +323,8 @@ impl<O: futures::Sink<Response> + Unpin> Service<O> {
             .as_ref()
             .and_then(|expr| Regex::new(expr).ok());
 
+        let disabled = self.args.disable.iter().any(|name| **name == config.name);
+
         entry.insert(PluginConnector::new(
             config,
             regex,
@@ -333,6 +340,7 @@ impl<O: futures::Sink<Response> + Unpin> Service<O> {
 
                 request_tx
             }),
+            disabled,
         ));
     }
 
@@ -482,6 +490,10 @@ impl<O: futures::Sink<Response> + Unpin> Service<O> {
             }
 
             if requires_persistence && !plugin.config.query.persistent {
+                continue;
+            }
+
+            if plugin.disabled {
                 continue;
             }
 
