@@ -93,6 +93,8 @@ where
                         self.exit();
                         break;
                     }
+                    // Ignore list plugin request for other plugins
+                    Request::ListPlugin => {}
                 },
                 Err(why) => tracing::error!("Malformed json request: {why}"),
             }

@@ -63,6 +63,8 @@ where
                 Request::Close => {
                     self.exit();
                 }
+                // Ignore list plugin request for other plugins
+                Request::ListPlugin => {}
             }
         }
 
